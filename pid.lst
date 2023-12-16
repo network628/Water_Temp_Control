@@ -1,0 +1,112 @@
+C51 COMPILER V9.60.0.0   PID                                                               12/27/2023 11:38:56 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE PID
+OBJECT MODULE PLACED IN .\hex\pid.obj
+COMPILER INVOKED BY: C:\Keil_C51\C51\BIN\C51.EXE Source\pid.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -pid.lst) TABS(2) OBJECT(.\hex\pid.obj)
+
+line level    source
+
+   1          #include "pid.h"
+   2          #include "main.h" 
+   3          
+   4          PID pid;
+   5          //extern u16 pidcalcms;
+   6          void PIDParament_Init()  //
+   7          {
+   8   1        ntc.Set_T =Read_Set_T();
+   9   1        // pid.set = ntc.Set_T;  //设定温度
+  10   1        pid.pwm_cycle=100;    ////pwm的周期
+  11   1        pid.pid_P=5;
+  12   1        pid.pid_I=4;
+  13   1        pid.pid_D=3;
+  14   1      //  pid.calc_cycle=50;  //每隔50*10mS运算一次
+  15   1      }
+  16            
+  17          void pid_calc(void)  //pid??
+  18          {
+  19   1        //int dk;
+  20   1      
+  21   1        
+  22   1        short PID_out;
+  23   1        
+  24   1      //  if(pidcalcms<pid.calc_cycle) return ;
+  25   1      
+  26   1      //  pid.Ek=pid.set-pid.curr;//????(????-????)
+  27   1        pid.Ek=pid.curr-pid.set;//????(????-????)
+  28   1        PID_out=((pid.pid_P)*((pid.Ek)-(pid.Ek_1)))+ \
+  29   1                ((pid.pid_I)*(pid.Ek))+ \
+  30   1                ((pid.pid_D)*((pid.Ek)-(2*(pid.Ek_1))+(pid.Ek_2)));   //??????
+  31   1        pid.currpwm+=PID_out;
+  32   1        pid.Ek_2=pid.Ek_1;  //???????
+  33   1        pid.Ek_1=pid.Ek;    //??????
+  34   1      //  printf("--->本次应该输出的PWM---> %d %d\r\n", pid.currpwm ,PID_out);
+  35   1        if(pid.currpwm<=0)  //??????0??0??(????)
+  36   1        {
+  37   2            pid.currpwm=0;// 
+  38   2        }  //PID????
+  39   1        else if(pid.currpwm>pid.pwm_cycle)  //1000    //1s??PWM??
+  40   1        {
+  41   2           pid.currpwm=pid.pwm_cycle;   //????????1000???????
+  42   2        }
+  43   1           
+  44   1      // pidcalcms=0;
+  45   1      //  return pid.currpwm;
+  46   1      } 
+  47          
+  48          
+  49          //void pid_calc()  //pid??
+  50          //{
+  51          //  float dk1;float dk2;
+  52          //  float t1,t2,t3;
+  53          //  
+  54          //  //short PID_out;
+C51 COMPILER V9.60.0.0   PID                                                               12/27/2023 11:38:56 PAGE 2   
+
+  55          //  
+  56          //  if(pidcalcms<pid.Tsam) return ;  //
+  57          //  pid.En=pid.set-pid.curr;  //本次误差
+  58          //  dk1=pid.En-pid.En_1;   //本次偏差与上次偏差之差
+  59          //  dk2=pid.En-2*pid.En_1+pid.En_2;
+  60          //  
+  61          //  t1=pid.Kp*dk1;
+  62          //  
+  63          //  t2=(pid.Kp*pid.Tsam)/pid.Ti;
+  64          //  t2=t2*pid.En;
+  65          //  
+  66          //  t3=(pid.Kp*pid.Td)/pid.Tsam;
+  67          //  t3=t3*dk2;
+  68          //  
+  69          //  pid.Dout=t1+t2+t3;  //本次应该输出的增量
+  70          //  
+  71          //  pid.currpwm+=pid.Dout;  //本次应该输出的PWM  //当前的pwm宽度
+  72          //  printf("--->本次应该输出的PWM---> %d\r\n", pid.currpwm);
+  73          //  if(pid.currpwm>pid.pwm_cycle)
+  74          //  {
+  75          //   pid.currpwm=pid.pwm_cycle;
+  76          //  }
+  77          //  if(pid.currpwm<0)
+  78          //  {
+  79          //   
+  80          //    pid.currpwm=0;
+  81          //  }
+  82          //  pid.En_2=pid.En_1;
+  83          //  pid.En_1=pid.En;
+  84          
+  85          //  pidcalcms=0;
+  86          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    338    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     34    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

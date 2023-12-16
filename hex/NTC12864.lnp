@@ -1,0 +1,12 @@
+".\hex\STARTUP.obj",
+".\hex\main.obj",
+".\hex\SH1106_12864.obj",
+".\hex\pca.obj",
+".\hex\NTC.obj",
+".\hex\timer.obj",
+".\hex\stceeprom.obj",
+".\hex\pid.obj",
+".\hex\key.obj",
+".\hex\Uart.obj" 
+TO ".\hex\NTC12864" 
+PRINT(".\NTC12864.m51") RAMSIZE(256) 

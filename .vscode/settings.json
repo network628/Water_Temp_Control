@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "sh1106_12864.h": "c",
+        "main.h": "c",
+        "uart.h": "c",
+        "UART.C": "cpp"
+    }
+}

@@ -1,0 +1,116 @@
+C51 COMPILER V9.60.0.0   PCA                                                               12/27/2023 11:38:56 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE PCA
+OBJECT MODULE PLACED IN .\hex\pca.obj
+COMPILER INVOKED BY: C:\Keil_C51\C51\BIN\C51.EXE Source\pca.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -pca.lst) TABS(2) OBJECT(.\hex\pca.obj)
+
+line level    source
+
+   1          
+   2          #include "main.h"
+   3          
+   4          // PCA 变量函数
+   5          void PWM_PCA_Init(void)
+   6          {
+   7   1      
+   8   1        P_SW1 |= 0X10; // 配置输出口到P3.5口 P3.5也是黑灵的控制灯口  手册790
+   9   1                       // P_SW1和AUXR1是一个寄存器 在手册790页可以看出
+  10   1        // 黑灵的 SPI总线调到  MOSI-P4^0  MISO-P4^1  SCLK-P4^3  就是利用了AUXR1
+  11   1        // 而P_SW1.4 P_SW1.5又是调节 PCA输出口所在IO分配的 所以这里一定要注意 是或等于
+  12   1      
+  13   1        CCON = 0;    // PCA控制寄存器          手册785
+  14   1        CL = 0;      // PCA 计数器低位    配置计数器初始值   流程图796页
+  15   1                     // 图中可以看出 PWM只用到了CL做累加计数器 并和CCAPnL进行比较
+  16   1        CH = 0;      // PCA 计数器高位
+  17   1        CMOD = 0x02; // 设置PCA时钟源   主频2分频    手册784
+  18   1      
+  19   1        PCA_PWM0 = 0X00;        // 8位PWM输出   按P_SW1|=0X10设置   输出在P3.5
+  20   1        CCAP0H = CCAP0L = 0xFE; // 占空比  CL累加值和CCAP0L比较 CL高于等于CCAP0L输出1  低于CCAP0L输出0
+  21   1        CCAPM0 = 0x42;          // PCA模块0为8位pwm模式        手册785
+  22   1      
+  23   1        //  PCA_PWM1=0X40;       //7位PWM输出    按P_SW1|=0X10设置 输出在P3.6
+  24   1        //  CCAP1H=CCAP1L=0x20;    //占空比
+  25   1        //  CCAPM1=0x42;         //PCA模块1为7位pwm模式
+  26   1        //
+  27   1        //  PCA_PWM2=0X80;       //8位PWM输出  按P_SW1|=0X10设置 输出在P3.7
+  28   1        //  CCAP2H=CCAP2L=0x20;    //占空比
+  29   1        //  CCAPM2=0x42;         //PCA模块2为6位pwm模式
+  30   1      
+  31   1        CR = 1; // 使能PCA
+  32   1      }
+  33          
+  34          void PWM_Out(unsigned char cycle)
+  35          {
+  36   1        U8 t; // 临时变量
+  37   1        cycle = (float)(2.55 * cycle);
+  38   1        t = 255 - cycle;     // 使P3.5口的灯亮度发生变化
+  39   1        CCAP0H = CCAP0L = t; // 将变量赋值到占空比存储空间
+  40   1        //  CCAP1H=CCAP1L=t;     //将变量赋值到占空比存储空间
+  41   1        //  CCAP2H=CCAP2L=t;     //将变量赋值到占空比存储空间
+  42   1      }
+  43          
+  44          struct NTC ntc;
+  45          U8 SW_Flag = 1;
+  46          char disp_temp[16];
+  47          void Cool_handle(void)
+  48          {
+  49   1        static u8 Sec_Cmp;
+  50   1        if (ntc.Tick > 50) // 500ms
+  51   1        {
+  52   2          ntc.Tick = 0;
+  53   2          ntc.Now_T = Get_Temp(); // 获取温度值
+  54   2          sprintf(disp_temp, "%3.1f", ntc.Now_T);
+C51 COMPILER V9.60.0.0   PCA                                                               12/27/2023 11:38:56 PAGE 2   
+
+  55   2          display_string_8x16(5, 8 * 8, disp_temp);
+  56   2        }
+  57   1      
+  58   1        if (pid.set != ntc.Set_T)
+  59   1        {
+  60   2          pid.set = ntc.Set_T; // 设定温度
+  61   2          sprintf(disp_temp, "%3.1f", ntc.Set_T);
+  62   2          display_string_8x16(3, 8 * 8, disp_temp);
+  63   2        }
+  64   1      
+  65   1        if (Sec_Cmp != ntc.Second) // 1s
+  66   1        {
+  67   2          Sec_Cmp = ntc.Second;
+  68   2          sprintf(disp_temp, "%02d:%02d:%02d", ntc.Hour, ntc.Min, ntc.Second);
+  69   2          display_string_8x16(1, 8 * 6, disp_temp);
+  70   2      
+  71   2          if (pid.curr != ntc.Now_T)
+  72   2          {
+  73   3            pid.curr = ntc.Now_T; // 当前温度
+  74   3          }
+  75   2      
+  76   2          pid_calc(); // pid??
+  77   2          if (SW_Flag)
+  78   2          {
+  79   3            ntc.Cool_PWM = pid.currpwm;
+  80   3            PWM_Out(ntc.Cool_PWM); // PWM(0<--->100)
+  81   3            sprintf(disp_temp, "%3d", ntc.Cool_PWM);
+  82   3            display_string_8x16(7, 8 * 9, disp_temp);
+  83   3          }
+  84   2          else
+  85   2          {
+  86   3            PWM_Out(0); // PWM(0<--->100)
+  87   3            display_string_8x16(7, 8 * 9, "---");
+  88   3          }
+  89   2        }
+  90   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    514    ----
+   CONSTANT SIZE    =     29    ----
+   XDATA SIZE       =     38    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
