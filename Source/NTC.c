@@ -303,5 +303,6 @@ float Get_Temp(void)
 	// 	tempvalue = 410 - tempvalue; // 取得0°以下温度
 	// }
 	tempvalue /= 10;
+	
 	return tempvalue;
 }
