@@ -57,7 +57,7 @@ unsigned int code NTCcode[] = {
 	// 0x0a8,	// -13.00		50.7456
 	// 0x0af,	// -12.00		48.4294
 	// 0x0b5,	// -11.00		46.2224
-	// 0x0bd, // -10.00		44.1201
+	// 0x0bd,	// -10.00		44.1201
 	// 0x0c4,	// -9.00		42.1180
 	// 0x0cb,	// -8.00		40.2121
 	// 0x0d3,	// -7.00		38.3988
@@ -148,39 +148,39 @@ unsigned int code NTCcode[] = {
 	0x036c, // 78.00		1.6727
 	0x036f, // 79.00		1.6282
 	0x0372, // 80.00		1.5860
-	// 0x0376, // 81.00		1.5458
-	// 0x0378, // 82.00		1.5075
-	// 0x037b, // 83.00		1.4707
-	// 0x037e, // 84.00		1.4352
-	// 0x0381, // 85.00		1.4006
-	// 0x0383, // 86.00		1.3669
-	// 0x0386, // 87.00		1.3337
-	// 0x0389, // 88.00		1.3009
-	// 0x038b, // 89.00		1.2684
-	// 0x038e, // 90.00		1.2360
-	// 0x0391, // 91.00		1.2037
-	// 0x0393, // 92.00		1.1714
-	// 0x0396, // 93.00		1.1390
-	// 0x0399, // 94.00		1.1067
-	// 0x039b, // 95.00		1.0744
-	// 0x039e, // 96.00		1.0422
-	// 0x03a1, // 97.00		1.0104
-	// 0x03a3, // 98.00		0.9789
-	// 0x03a6, // 99.00		0.9481
-	// 0x03a8, // 100.00		0.9180
-	// 0x03ab, // 101.00		0.8889
-	// 0x03ad, // 102.00		0.8610
-	// 0x03b0, // 103.00		0.8346
-	// 0x03b2, // 104.00		0.8099
-	// 0x03b4, // 105.00		0.7870
-	// 0x03b6, // 106.00		0.7665
-	// 0x03b7, // 107.00		0.7485
-	// 0x03b9, // 108.00		0.7334
-	// 0x03ba, // 109.00		0.7214
-	// 0x03ba // 110.00		0.7130
+	0x0376, // 81.00		1.5458
+	0x0378, // 82.00		1.5075
+	0x037b, // 83.00		1.4707
+	0x037e, // 84.00		1.4352
+	0x0381, // 85.00		1.4006
+	0x0383, // 86.00		1.3669
+	0x0386, // 87.00		1.3337
+	0x0389, // 88.00		1.3009
+	0x038b, // 89.00		1.2684
+	0x038e, // 90.00		1.2360
+	0x0391, // 91.00		1.2037
+	0x0393, // 92.00		1.1714
+	0x0396, // 93.00		1.1390
+	0x0399, // 94.00		1.1067
+	0x039b, // 95.00		1.0744
+	0x039e, // 96.00		1.0422
+	0x03a1, // 97.00		1.0104
+	0x03a3, // 98.00		0.9789
+	0x03a6, // 99.00		0.9481
+	0x03a8, // 100.00		0.9180
+	0x03ab, // 101.00		0.8889
+	0x03ad, // 102.00		0.8610
+	0x03b0, // 103.00		0.8346
+	0x03b2, // 104.00		0.8099
+	0x03b4, // 105.00		0.7870
+	0x03b6, // 106.00		0.7665
+	0x03b7, // 107.00		0.7485
+	0x03b9, // 108.00		0.7334
+	0x03ba, // 109.00		0.7214
+	0x03ba	// 110.00		0.7130
 };
 
-unsigned char ADCcount;	  // 数码管显示计数变量，ADC采样次数变量
+unsigned char ADCcount; // 数码管显示计数变量，ADC采样次数变量
 /******************************
 函数说明：初始化ADC寄存器，设置P1.7为ADC输入功能
 入口参数：无
@@ -218,70 +218,75 @@ unsigned int Get_ADC_Result(unsigned char ch)
 	return result;					  // 返回ADC转换结果10位
 }
 
-// #define FILTER_LENGTH 8 // 移动平均滤波器长度
-// // 移动平均滤波
-// uint16_t MovingAverageFilter(uint16_t newValue)
-// {
-// 	static uint16_t values[FILTER_LENGTH];
-// 	static uint8_t index = 0;
-// 	static uint16_t sum = 0;
+/****************************************************************************/
+// 过程噪声和测量噪声的方差
+float KQ = 0.01;							  // 过程噪声方差
+float KR = 0.1;								  // 测量噪声方差
+float NTC_Kalman_Filtering(uint16_t newValue) // 692byte 4096
+{
+	// 卡尔曼滤波器的预测步骤
+	// 定义卡尔曼滤波器的状态变量和协方差
+	static float Kx_hat = 0; // 估计的状态值
+	static float KP1 = 1;	 // 估计误差的协方差
+	float KK1;
+	short ntc_value;
+	// 控制向量 u 影响状态的演变
+	// 在这个示例中，我们假设控制向量表示外部输入，例如速度
+	// 预测下一个状态值，考虑控制向量
+	// x_hat = x_hat + u;
+	// 更新估计误差的协方差
+	KP1 = KP1 + KQ;
 
-// 	// 从缓冲区中移除旧值
-// 	sum -= values[index];
-// 	// 将新值添加到缓冲区
-// 	values[index] = newValue;
-// 	sum += newValue;
-// 	// 更新索引
-// 	index = (index + 1) % FILTER_LENGTH;
-// 	// 返回平均值
-// 	return sum / FILTER_LENGTH;
-// }
+	// 计算卡尔曼增益
+	KK1 = KP1 / (KP1 + KR);
+	// 更新状态估计
+	ntc_value = (newValue - Kx_hat);
+
+	Kx_hat = Kx_hat + KK1 * ntc_value;
+	// 更新估计误差的协方差
+	KP1 = (1 - KK1) * KP1;
+
+	return Kx_hat;
+}
 
 /******************************
 函数说明：获取温度值
 入口参数：无
 出口参数：无
 ******************************/
-#define N 16	//ADC采样使用递推平均滤波算法，采样次数
-unsigned int  Temp_Buf[N+1];// 采样数组
-// u8 ntc_cnt;
+// #define N 16	//ADC采样使用递推平均滤波算法，采样次数
+// unsigned int  Temp_Buf[N+1];// 采样数组
 float Get_Temp(void)
 {
 	float tempvalue;
 	unsigned char xx;
-	// uint16_t adcValue;
-	// //*********************************************************
-	// // if (ntc_cnt == 0)
-	// // {
-	// // ntc_cnt = 2; // 2*10ms 20ms 执行一次
-	// // 读取ADC值
-	// adcValue = Get_ADC_Result(0);
-	// // printf("--->adcValue--->%d--\r\n",adcValue);
-	// // 应用滤波
-	// tempvalue = MovingAverageFilter(adcValue);
-	// // }
 
-	unsigned int sum;
-	sum = tempvalue =0;	
-	Temp_Buf[N]=Get_ADC_Result(0);	//将ADC转换结果放数组最高位
-	if( ++ADCcount < 16)		//采样初期不使用滤波算法
-	{	
-		for(xx=0;xx<N;xx++)	//准备滤波算法的数据
-		{
-			Temp_Buf[xx]=Temp_Buf[xx+1];//所有数据循环左移
-		}
-		tempvalue=Temp_Buf[N];//采样初期使用当前采样值
-	}
-	else 	//只有采样次数大于8次以后才使用滤波算法	
-	{
-		ADCcount=16;	//采样次数超过8次后，固定设置为8
-		for(xx=0;xx<N;xx++)	//滤波算法
-		{
-			Temp_Buf[xx]=Temp_Buf[xx+1];//所有数据循环左移
-			sum+=Temp_Buf[xx];	//求和
-		}
-		tempvalue=sum/N;		//求平均值		
-	}	
+	// unsigned int sum;
+	// sum = tempvalue =0;
+	// Temp_Buf[N]=Get_ADC_Result(0);	//将ADC转换结果放数组最高位
+	// if( ++ADCcount < 16)		//采样初期不使用滤波算法
+	// {
+	// 	for(xx=0;xx<N;xx++)	//准备滤波算法的数据
+	// 	{
+	// 		Temp_Buf[xx]=Temp_Buf[xx+1];//所有数据循环左移
+	// 	}
+	// 	tempvalue=Temp_Buf[N];//采样初期使用当前采样值
+	// }
+	// else 	//只有采样次数大于8次以后才使用滤波算法
+	// {
+	// 	ADCcount=16;	//采样次数超过8次后，固定设置为8
+	// 	for(xx=0;xx<N;xx++)	//滤波算法
+	// 	{
+	// 		Temp_Buf[xx]=Temp_Buf[xx+1];//所有数据循环左移
+	// 		sum+=Temp_Buf[xx];	//求和
+	// 	}
+	// 	tempvalue=sum/N;		//求平均值
+	// }
+
+	// 读取ADC值
+	uint16_t NTC_adcValue = Get_ADC_Result(0); // 将ADC转换结果放数组最高位
+	tempvalue = NTC_Kalman_Filtering(NTC_adcValue);
+
 	// printf("T: %d", tempvalue);
 	//*********************************************************
 	xx = 0;
@@ -303,6 +308,5 @@ float Get_Temp(void)
 	// 	tempvalue = 410 - tempvalue; // 取得0°以下温度
 	// }
 	tempvalue /= 10;
-	
 	return tempvalue;
 }
